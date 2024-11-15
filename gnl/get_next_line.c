@@ -1,48 +1,56 @@
 #include "get_next_line.h"
 
-char    *get_next_line(int fd)
+char    *strdup_line(char *line)
 {
-    static char *tail;
-    char    *buffer[BUFFER_SIZE];
-    char    *line;
-    int     ind_nl;
-    int     bytes;
+    int     len;
+    int     ind;
+    char    *ret;
 
-    if (fd < 0 || BUFFER_SIZE < 1)
+    ind = -1;
+    while (line[++ind])
+        len++;
+    ind = -1;
+    ret = (char *) malloc(sizeof(char) * (len + 1));
+    if (!ret)
         return (NULL);
-    line = NULL;
-    if (!tail)
-    {
-        while (bytes = read(fd, &(buffer[0]), BUFFER_SIZE - 1))
-        {
-            if (bytes == -1)
-                return (NULL);
-            buffer[bytes] = '\0';
-            ind_nl = check_new_line_in_buff(&(buffer[0]));
-            if (ind_nl != bytes)
-            {
-                line = ft_realloc(&(buffer[0]), line);
-                if (ind_nl < bytes)
-                {
-                    tail = add_tail(&(buffer[0]), ind_nl);
-                    return (line);
-                }
-            }
-        }
-    }
-    
+    while (++ind < len)
+        ret[ind] = line[ind];
+    ret[ind] = '\0';
+    return (ret);
 }
 
-static int  check_new_line_in_buff(char *str)
+char    *get_next_line(int fd)
 {
-    int ind;
+    char        buffer[BUFFER_SIZE + 1];
+    char        line[70000];
+    static int  buff_read;
+    static int  buff_pos;
+    int         ind;
 
     ind = 0;
-    while (str[ind])
+    if (fd < 0 || BUFFER_SIZE <= 0)
+        return (NULL);
+    while (1)
     {
-        if (str[ind] == '\n')
-            return (ind);
+        if (buff_pos >= buff_read)
+        {
+            buff_read = read(fd, buffer, BUFFER_SIZE);
+            if (buff_read <= 0)
+                break ;
+            buffer[buff_read] = '\0';
+            buff_pos = 0;
+        }
+        line[ind] = buffer[buff_pos++];
+        if (line[ind] == '\n')
+        {
+            ind++;
+            break ;
+        }
         ind++;
     }
-    return (ind);
+    line[ind] = '\0';
+    if (!ind)
+        return (NULL);
+    return (strdup_line(&(line[0])));
+
 }
